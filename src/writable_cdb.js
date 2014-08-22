@@ -115,7 +115,7 @@ writeable_cdb.prototype._writeSubtables = function(callback) {
         var buffer = getBufferForSubtable(subtable);
 
         this._subtableStream.write(buffer);
-        this._header[i] = {position: offset, entries: subtable.length};
+        this._header[i] = {position: offset, entries: subtable.length * 2};
         offset += buffer.length;
     }
 
