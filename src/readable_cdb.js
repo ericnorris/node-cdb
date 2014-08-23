@@ -1,6 +1,8 @@
 var fs = require('fs');
 var promise = require('bluebird');
 
+promise.onPossiblyUnhandledRejection();
+
 var open = promise.promisify(fs.open);
 var read = promise.promisify(fs.read);
 
@@ -106,7 +108,7 @@ readable_cdb.prototype._readEntry = function(subtableIndex, slot) {
     var numEntries = headerEntry.entries;
 
     if (numEntries == 0) {
-        return null;
+        return promise.resolve(null);
     }
 
     var slot = slot % numEntries;
