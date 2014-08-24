@@ -2,8 +2,8 @@ var vows = require('vows');
 var assert = require('assert');
 var fs = require('fs');
 
-var writable_cdb = require('../src/writable_cdb');
-var readable_cdb = require('../src/readable_cdb');
+var writable_cdb = require('../src/writable-cdb');
+var readable_cdb = require('../src/readable-cdb');
 
 vows.describe('cdb-test').addBatch({
     'A writable cdb': {

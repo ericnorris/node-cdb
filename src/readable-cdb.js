@@ -1,16 +1,19 @@
 var fs = require('fs');
 var promise = require('bluebird');
+var util = require('./util');
 
 promise.onPossiblyUnhandledRejection();
 
 var open = promise.promisify(fs.open);
 var read = promise.promisify(fs.read);
 
-var HASH_START = 5381;
-var HEADER_SIZE = 2048;
-var TABLE_SIZE = 256;
-var INT_SIZE = 4;
-var ENTRY_SIZE = 2 * INT_SIZE;
+var HEADER_SIZE = util.HEADER_SIZE;
+var TABLE_SIZE  = util.TABLE_SIZE;
+var INT_SIZE    = util.INT_SIZE;
+var ENTRY_SIZE  = util.ENTRY_SIZE;
+
+var hashKey = util.hashKey;
+var lookupSubtable = util.lookupSubtable;
 
 function readIntoBuffer(fd, size, position) {
     return read(fd, new Buffer(size), 0, size, position).get(1);
@@ -29,18 +32,6 @@ function parseHeader(buffer) {
     }
 
     return header;
-}
-
-function hashKey(key) {
-    var hash = HASH_START;
-    for (var i = 0, length = key.length; i < length; i++) {
-        hash = ((((hash << 5) >>> 0) + hash) ^ key.charCodeAt(i)) >>> 0;
-    }
-    return hash;
-}
-
-function lookupSubtable(hash) {
-    return hash & 255;
 }
 
 function EntryMismatchError(message) {

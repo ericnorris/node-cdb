@@ -1,9 +1,13 @@
 var fs = require('fs');
+var util = require('./util');
 
-var HASH_START = 5381;
-var HEADER_SIZE = 2048;
-var TABLE_SIZE = 256;
-var INT_SIZE = 4;
+var HEADER_SIZE = util.HEADER_SIZE;
+var TABLE_SIZE  = util.TABLE_SIZE;
+var INT_SIZE    = util.INT_SIZE;
+var ENTRY_SIZE  = util.ENTRY_SIZE;
+
+var hashKey = util.hashKey;
+var lookupSubtable = util.lookupSubtable;
 
 var writeable_cdb = module.exports = function(file) {
     this._header = new Array(TABLE_SIZE);
@@ -18,14 +22,6 @@ var writeable_cdb = module.exports = function(file) {
     }
 };
 
-function hashKey(key) {
-    var hash = HASH_START;
-    for (var i = 0, length = key.length; i < length; i++) {
-        hash = ((((hash << 5) >>> 0) + hash) ^ key.charCodeAt(i)) >>> 0;
-    }
-    return hash;
-}
-
 function getBufferForRecord(key, data) {
     var keySize = INT_SIZE + key.length;
     var dataSize = INT_SIZE + data.length;
@@ -38,13 +34,9 @@ function getBufferForRecord(key, data) {
     return buffer;
 }
 
-function lookupSubtable(hash) {
-    return hash & 255;
-}
-
 function getBufferForSubtable(subtable) {
     var entries = subtable.length * 2;
-    var buffer = new Buffer(entries * (2 * INT_SIZE));
+    var buffer = new Buffer(entries * ENTRY_SIZE);
     var slots = new Array(entries);
 
     for (var i = 0, length = subtable.length; i < length; i++) {
@@ -53,10 +45,10 @@ function getBufferForSubtable(subtable) {
         var position = entry.position;
 
         var slot = (hash >>> 8) % entries;
-        var offset = slot * (2 * INT_SIZE);
+        var offset = slot * ENTRY_SIZE
         while (slots[slot]) {
             slot = (slot + 1) % entries;
-            offset = slot * (2 * INT_SIZE);
+            offset = slot * ENTRY_SIZE;
         }
 
         slots[slot] = true;
@@ -77,7 +69,7 @@ function getBufferForHeader(headerTable) {
 
         buffer.writeUInt32LE(position, offset);
         buffer.writeUInt32LE(entries, offset + INT_SIZE);
-        offset += (2 * INT_SIZE);
+        offset += ENTRY_SIZE;
     }
 
     return buffer;
