@@ -1,4 +1,5 @@
 var fs = require('fs');
+var promise = require('bluebird');
 var util = require('./util');
 
 var HEADER_SIZE = util.HEADER_SIZE;
@@ -6,21 +7,129 @@ var TABLE_SIZE  = util.TABLE_SIZE;
 var INT_SIZE    = util.INT_SIZE;
 var ENTRY_SIZE  = util.ENTRY_SIZE;
 
-var hashKey = util.hashKey;
+var hashKey        = util.hashKey;
 var lookupSubtable = util.lookupSubtable;
 
-var writeable_cdb = module.exports = function(file) {
+var writable = module.exports = function(file) {
     this._header = new Array(TABLE_SIZE);
     this._subtables = new Array(TABLE_SIZE);
-
     this._file = file;
-    this._filePosition = HEADER_SIZE;
-    this._recordStream = fs.createWriteStream(file, {start: HEADER_SIZE});
+    this._recordStream = null;
+    this._subtableStream = null;
+    this._filePosition = 0;
 
     for (var i = 0; i < TABLE_SIZE; i++) {
         this._subtables[i] = [];
     }
 };
+
+writable.prototype.open = function(callback) {
+    var recordStream = fs.createWriteStream(this._file, {start: HEADER_SIZE});
+    var self = this;
+    var callback = callback || function() {};
+
+    recordStream.once('open', fileOpened);
+    recordStream.once('error', error);
+
+    function fileOpened(fd) {
+        self._recordStream = recordStream;
+        self._filePosition = HEADER_SIZE;
+        callback(null, self);
+    }
+
+    function error(err) {
+        self._recordStream = recordStream;
+        callback(err, null);
+    }
+};
+
+writable.prototype.addRecord = function(key, data) {
+    if (!this._recordStream) {
+        throw new Error('cdb not opened.');
+    }
+
+    var hash = hashKey(key);
+    var buffer = getBufferForRecord(key, data);
+    var subtableIndex = lookupSubtable(hash);
+    var entry = {hash: hash, position: this._filePosition};
+
+    this._subtables[subtableIndex].push(entry);
+    this._filePosition += buffer.length;
+
+    return this._recordStream.write(buffer, 'buffer');
+};
+
+writable.prototype.close = function(callback) {
+    var self = this;
+
+    function closeRecordStream() {
+        var deferred = defer();
+
+        self._recordStream.on('finish', function allRecordsFlushed() {
+            deferred.resolve();
+        });
+
+        self._recordStream.on('error', function streamError(err) {
+            deferred.reject(err);
+        });
+
+        self._recordStream.end();
+
+        return deferred.promise;
+    }
+
+    closeRecordStream().bind(this)
+        .then(this._writeSubtables)
+        .then(this._writeHeader)
+        .nodeify(callback);
+}
+
+writable.prototype._writeSubtables = function() {
+    var self = this;
+    var offset = this._filePosition;
+    var deferred = defer();
+
+    this._subtableStream = fs.createWriteStream(this._file, {flags: 'a'});
+
+    this._subtableStream.on('finish', function allSubtablesFlushed() {
+        deferred.resolve();
+    });
+
+    this._subtableStream.on('error', function streamError(err) {
+        deferred.reject();
+    });
+
+    for (var i = 0; i < TABLE_SIZE; i++) {
+        var subtable = this._subtables[i];
+        var buffer = getBufferForSubtable(subtable);
+
+        this._subtableStream.write(buffer);
+        this._header[i] = {position: offset, entries: subtable.length * 2};
+
+        offset += buffer.length;
+    }
+
+    this._subtableStream.end();
+    return deferred.promise;
+};
+
+writable.prototype._writeHeader = function(callback) {
+    var writeFile = promise.promisify(fs.writeFile);
+    var buffer = getBufferForHeader(this._header);
+
+    return writeFile(this._file, buffer, {flag: 'r+'});
+}
+
+function defer() {
+    var deferred = {};
+
+    deferred.promise = new promise(function(resolve, reject) {
+        deferred.resolve = resolve;
+        deferred.reject = reject;
+    });
+
+    return deferred;
+}
 
 function getBufferForRecord(key, data) {
     var keySize = INT_SIZE + key.length;
@@ -73,53 +182,4 @@ function getBufferForHeader(headerTable) {
     }
 
     return buffer;
-}
-
-writeable_cdb.prototype.addRecord = function(key, data) {
-    var hash = hashKey(key);
-    var buffer = getBufferForRecord(key, data);
-    var self = this;
-
-    this._recordStream.write(buffer, '', function recordFlushed() {
-        var subtableIndex = lookupSubtable(hash);
-
-        self._subtables[subtableIndex].push({hash: hash, position: self._filePosition});
-        self._filePosition += buffer.length;
-    });
-};
-
-writeable_cdb.prototype.finalizeDB = function(callback) {
-    var self = this;
-    this._recordStream.on('finish', function allRecordsFlushed() {
-        self._writeSubtables(callback);
-    });
-
-    this._recordStream.end();
-};
-
-writeable_cdb.prototype._writeSubtables = function(callback) {
-    var self = this;
-    var offset = this._filePosition;
-
-    this._subtableStream = fs.createWriteStream(this._file, {flags: 'a'});
-    for (var i = 0; i < TABLE_SIZE; i++) {
-        var subtable = this._subtables[i];
-        var buffer = getBufferForSubtable(subtable);
-
-        this._subtableStream.write(buffer);
-        this._header[i] = {position: offset, entries: subtable.length * 2};
-        offset += buffer.length;
-    }
-
-    this._subtableStream.on('finish', function allSubtablesFlushed() {
-        self._writeHeader(callback);
-    })
-
-    this._subtableStream.end();
-};
-
-writeable_cdb.prototype._writeHeader = function(callback) {
-    var buffer = getBufferForHeader(this._header);
-
-    fs.writeFile(this._file, buffer, {flag: 'r+'}, callback);
 }

@@ -2,42 +2,71 @@ var vows = require('vows');
 var assert = require('assert');
 var fs = require('fs');
 
-var writable_cdb = require('../src/writable-cdb');
+var writable = require('../src/writable-cdb');
 var readable_cdb = require('../src/readable-cdb');
 
+var tempFile = 'test/tmp';
 vows.describe('cdb-test').addBatch({
     'A writable cdb': {
         topic: function() {
-            this.callback(null, new writable_cdb('test/tmp'));
+            try {
+                fs.unlinkSync(tempFile);
+            } catch (err) {}
+
+            return new writable(tempFile);
         },
 
-        'should create a file named tmp': function(cdb) {
-            assert.isObject(fs.statSync('test/tmp'));
+        'should not create a file on create': function(cdb) {
+            assert.throws(function() {
+                fs.statSync(tempFile);
+            }, Error);
         },
+
         'should respond to addRecord': function(cdb) {
             assert.isFunction(cdb.addRecord);
         },
-        'should add records without exception': function(cdb) {
-            cdb.addRecord('meow', '0xdeadbeef');
-            cdb.addRecord('abcd', 'test1');
-            cdb.addRecord('efgh', 'test2');
-            cdb.addRecord('ijkl', 'test3');
-            cdb.addRecord('mnopqrs', 'test4');
+
+        'should throw an error if not opened': function(cdb) {
+            assert.throws(cdb.addRecord, Error);
         },
-        'should finalize': {
+
+        'when opened': {
             topic: function(cdb) {
-                cdb.finalizeDB(this.callback);
+                cdb.open(this.callback);
             },
 
-            'without error': function(err) {
-                assert.equal(err, null);
+            'should not error': function(err, cdb) {
+                assert.isNull(err);
             },
 
-            'and have a file named tmp with non-zero size': function(err) {
-                var stat = fs.statSync('test/tmp');
-                assert.isObject(stat);
-                assert.isTrue(stat.size != 0);
+            'should create a file': function(err, cdb) {
+                assert.isObject(fs.statSync(tempFile));
             },
+
+            'should add records without exception': function(cdb) {
+                cdb.addRecord('meow', '0xdeadbeef');
+                cdb.addRecord('abcd', 'test1');
+                cdb.addRecord('efgh', 'test2');
+                cdb.addRecord('ijkl', 'test3');
+                cdb.addRecord('mnopqrs', 'test4');
+            },
+
+            'should close': {
+                topic: function(cdb) {
+                    cdb.close(this.callback);
+                },
+
+                'without error': function(err) {
+                    assert.equal(err, null);
+                },
+
+                'and have a file with non-zero size': function(err) {
+                    var stat = fs.statSync('test/tmp');
+                    assert.isObject(stat);
+                    assert.isTrue(stat.size != 0);
+                }
+            },
+
         },
     }
 }).addBatch({
