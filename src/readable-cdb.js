@@ -1,6 +1,6 @@
-var fs = require('fs');
+var fs      = require('fs');
 var promise = require('bluebird');
-var util = require('./util');
+var util    = require('./util');
 
 promise.onPossiblyUnhandledRejection();
 
@@ -12,54 +12,55 @@ var TABLE_SIZE  = util.TABLE_SIZE;
 var INT_SIZE    = util.INT_SIZE;
 var ENTRY_SIZE  = util.ENTRY_SIZE;
 
-var hashKey = util.hashKey;
+var hashKey        = util.hashKey;
 var lookupSubtable = util.lookupSubtable;
-
-function readIntoBuffer(fd, size, position) {
-    return read(fd, new Buffer(size), 0, size, position).get(1);
-}
-
-function parseHeader(buffer) {
-    var header = new Array(TABLE_SIZE);
-    var offset = 0;
-
-    for (var i = 0; i < TABLE_SIZE; i++) {
-        var position = buffer.readUInt32LE(offset);
-        var entries = buffer.readUInt32LE(offset + INT_SIZE);
-
-        header[i] = {position: position, entries: entries};
-        offset += ENTRY_SIZE;
-    }
-
-    return header;
-}
 
 function EntryMismatchError(message) {
     this.message = message;
     this.name = "EntryMismatchError";
-    Error.captureStackTrace(this, EntryMismatchError);
 }
 EntryMismatchError.prototype = Object.create(Error.prototype);
 EntryMismatchError.prototype.constructor = EntryMismatchError;
 
-var readable_cdb = module.exports = function(file) {
+var readable = module.exports = function(file) {
     this._file = file;
-
-    this._opening = open(file, 'r').bind(this).then(function fileOpened(fd) {
-        this._fd = fd;
-
-        return readIntoBuffer(fd, HEADER_SIZE, 0);
-    }).then(parseHeader).then(function headerParsed(header) {
-        delete this._opening;
-
-        this._header = header;
-        return this;
-    });
+    this._fd = null;
 }
 
-readable_cdb.prototype.getRecord = function(key, callback) {
-    if (this._opening) {
-        return this._opening.call('getRecord', key, callback);
+readable.prototype.open = function(callback) {
+    function fileOpened(fd) {
+        this._fd = fd;
+    }
+
+    return open(this._file, 'r').bind(this)
+        .then(fileOpened)
+        .then(this._readHeader)
+        .nodeify(callback);
+}
+
+readable.prototype._readHeader = function() {
+    var header = new Array(TABLE_SIZE);
+    var offset = 0;
+
+    return readIntoBuffer(this._fd, HEADER_SIZE, 0).bind(this).then(
+        function parseHeader(buffer) {
+            for (var i = 0; i < TABLE_SIZE; i++) {
+                var position = buffer.readUInt32LE(offset);
+                var entries = buffer.readUInt32LE(offset + INT_SIZE);
+
+                header[i] = {position: position, entries: entries};
+                offset += ENTRY_SIZE;
+            }
+
+            this._header = header;
+            return this;
+        }
+    );
+};
+
+readable.prototype.getRecord = function(key, callback) {
+    if (!this._fd) {
+        throw new Error('cdb not opened');
     }
 
     var hash = hashKey(key);
@@ -71,16 +72,16 @@ readable_cdb.prototype.getRecord = function(key, callback) {
             function checkEntry(entry) {
                 if (!entry) {
                     throw new Error('Hash not found.');
-                } else if (entry.hash != hash) {
-                    throw new EntryMismatchError('hash ' + entry.hash + ' != ' + hash + ' [' + key + ', ' + subtableIndex + ', ' + entry.slot + ']');
+                } else if (hash != entry.hash) {
+                    throw new EntrMismatchError();
                 }
 
                 return entry;
             }
         ).then(this._readKey).then(
             function checkKey(entry) {
-                if (entry.key != key) {
-                    throw new EntryMismatchError('key ' + entry.key + ' != ' + key);
+                if (key != entry.key) {
+                    throw new EntryMismatchError();
                 }
 
                 return entry;
@@ -93,7 +94,7 @@ readable_cdb.prototype.getRecord = function(key, callback) {
     return loop.call(this, slot).then(this._readData).nodeify(callback);
 };
 
-readable_cdb.prototype._readEntry = function(subtableIndex, slot) {
+readable.prototype._readEntry = function(subtableIndex, slot) {
     var headerEntry = this._header[subtableIndex];
     var subtablePosition = headerEntry.position;
     var numEntries = headerEntry.entries;
@@ -115,7 +116,7 @@ readable_cdb.prototype._readEntry = function(subtableIndex, slot) {
     );
 };
 
-readable_cdb.prototype._readKey = function(entry) {
+readable.prototype._readKey = function(entry) {
     var position = entry.position;
 
     return readIntoBuffer(this._fd, INT_SIZE, position).bind(this).then(
@@ -135,10 +136,7 @@ readable_cdb.prototype._readKey = function(entry) {
     );
 };
 
-readable_cdb.prototype._readData = function(entry) {
-    if (entry.key== undefined) {
-        console.log('broken entry', entry);
-    }
+readable.prototype._readData = function(entry) {
     var position = entry.position + INT_SIZE + entry.key.length;
 
     return readIntoBuffer(this._fd, INT_SIZE, position).bind(this).then(
@@ -152,3 +150,7 @@ readable_cdb.prototype._readData = function(entry) {
         }
     ).call('toString');
 };
+
+function readIntoBuffer(fd, size, position) {
+    return read(fd, new Buffer(size), 0, size, position).get(1);
+}

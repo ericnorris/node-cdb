@@ -1,11 +1,12 @@
-var vows = require('vows');
+var vows   = require('vows');
 var assert = require('assert');
-var fs = require('fs');
+var fs     = require('fs');
 
 var writable = require('../src/writable-cdb');
-var readable_cdb = require('../src/readable-cdb');
-
+var readable = require('../src/readable-cdb');
 var tempFile = 'test/tmp';
+var fakeFile = 'test/doesntexist';
+
 vows.describe('cdb-test').addBatch({
     'A writable cdb': {
         topic: function() {
@@ -16,7 +17,7 @@ vows.describe('cdb-test').addBatch({
             return new writable(tempFile);
         },
 
-        'should not create a file on create': function(cdb) {
+        'should not create a file when instantiated': function(cdb) {
             assert.throws(function() {
                 fs.statSync(tempFile);
             }, Error);
@@ -36,7 +37,7 @@ vows.describe('cdb-test').addBatch({
             },
 
             'should not error': function(err, cdb) {
-                assert.isNull(err);
+                assert.equal(err, null);
             },
 
             'should create a file': function(err, cdb) {
@@ -71,36 +72,59 @@ vows.describe('cdb-test').addBatch({
     }
 }).addBatch({
     'A readable cdb': {
-        topic: function() {
-            this.callback(null, new readable_cdb('test/tmp'));
-        },
+        'for a non-existing file': {
+            topic: new readable(fakeFile),
 
-        'should find meow': {
-            topic: function(cdb) {
-                cdb.getRecord('meow', this.callback);
-            },
+            'when opened': {
+                topic: function(cdb) {
+                    cdb.open(this.callback);
+                },
 
-            'without error': function(err, data) {
-                assert.equal(err, null);
-                assert.notEqual(data, null);
-            },
-
-            'and return 0xdeadbeef': function(err, data) {
-                assert.equal(data, '0xdeadbeef');
+                'should error': function(err, cdb) {
+                    assert.notEqual(err, null);
+                }
             }
         },
 
-        'when searching for a non-existing key': {
-            topic: function(cdb) {
-                cdb.getRecord('kitty cat', this.callback);
-            },
+        'for an existing file': {
+            topic: new readable(tempFile),
 
-            'should error': function(err, data) {
-                assert.notEqual(err, null);
-            },
+            'when opened': {
+                topic: function(cdb) {
+                    cdb.open(this.callback);
+                },
 
-            'and have a null result': function(err, data) {
-                assert.equal(data, null);
+                'should not error': function(err, cdb) {
+                    assert.equal(err, null);
+                },
+
+                'should find an existing key': {
+                    topic: function(cdb) {
+                        cdb.getRecord('meow', this.callback);
+                    },
+
+                    'without error': function(err, data) {
+                        assert.equal(err, null);
+                    },
+
+                    'and return the right data': function(err, data) {
+                        assert.equal(data, '0xdeadbeef');
+                    }
+                },
+
+                'should not find a missing key': {
+                    topic: function(cdb) {
+                        cdb.getRecord('kitty cat', this.callback);
+                    },
+
+                    'and should error': function(err, data) {
+                        assert.notEqual(err, null);
+                    },
+
+                    'and should have a null result': function(err, data) {
+                        assert.equal(data, null);
+                    }
+                }
             }
         },
 
