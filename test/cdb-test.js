@@ -73,7 +73,9 @@ vows.describe('cdb-test').addBatch({
 }).addBatch({
     'A readable cdb': {
         'for a non-existing file': {
-            topic: new readable(fakeFile),
+            topic: function() {
+                return new readable(fakeFile)
+            },
 
             'when opened': {
                 topic: function(cdb) {
@@ -87,7 +89,9 @@ vows.describe('cdb-test').addBatch({
         },
 
         'for an existing file': {
-            topic: new readable(tempFile),
+            topic: function() {
+                return new readable(tempFile)
+            },
 
             'when opened': {
                 topic: function(cdb) {
@@ -124,11 +128,31 @@ vows.describe('cdb-test').addBatch({
                     'and should have a null result': function(err, data) {
                         assert.equal(data, null);
                     }
+                },
+            },
+
+            teardown: function(cdb) {
+                cdb.close();
+            }
+        },
+
+        'for an open existing file': {
+            topic: function() {
+                (new readable(tempFile)).open(this.callback);
+            },
+
+            'when closed': {
+                topic: function(cdb) {
+                    cdb.close(this.callback);
+                },
+
+                'should not error': function(err, _) {
+                    assert.equal(err, null);
                 }
             }
         },
 
-        teardown: function(cdb) {
+        teardown: function() {
             fs.unlinkSync(tempFile);
         }
     }

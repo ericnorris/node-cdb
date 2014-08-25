@@ -6,6 +6,7 @@ promise.onPossiblyUnhandledRejection();
 
 var open = promise.promisify(fs.open);
 var read = promise.promisify(fs.read);
+var close = promise.promisify(fs.close);
 
 var HEADER_SIZE = util.HEADER_SIZE;
 var TABLE_SIZE  = util.TABLE_SIZE;
@@ -38,24 +39,15 @@ readable.prototype.open = function(callback) {
         .nodeify(callback);
 }
 
-readable.prototype._readHeader = function() {
-    var header = new Array(TABLE_SIZE);
-    var offset = 0;
+readable.prototype.close = function(callback) {
+    if (this._fd) {
+        var fd = this._fd;
 
-    return readIntoBuffer(this._fd, HEADER_SIZE, 0).bind(this).then(
-        function parseHeader(buffer) {
-            for (var i = 0; i < TABLE_SIZE; i++) {
-                var position = buffer.readUInt32LE(offset);
-                var entries = buffer.readUInt32LE(offset + INT_SIZE);
-
-                header[i] = {position: position, entries: entries};
-                offset += ENTRY_SIZE;
-            }
-
-            this._header = header;
-            return this;
-        }
-    );
+        this._fd = null;
+        return close(fd).nodeify(callback);
+    } else {
+        throw new Error('cdb not opened');
+    }
 };
 
 readable.prototype.getRecord = function(key, callback) {
@@ -92,6 +84,26 @@ readable.prototype.getRecord = function(key, callback) {
     }
 
     return loop.call(this, slot).then(this._readData).nodeify(callback);
+};
+
+readable.prototype._readHeader = function() {
+    var header = new Array(TABLE_SIZE);
+    var offset = 0;
+
+    return readIntoBuffer(this._fd, HEADER_SIZE, 0).bind(this).then(
+        function parseHeader(buffer) {
+            for (var i = 0; i < TABLE_SIZE; i++) {
+                var position = buffer.readUInt32LE(offset);
+                var entries = buffer.readUInt32LE(offset + INT_SIZE);
+
+                header[i] = {position: position, entries: entries};
+                offset += ENTRY_SIZE;
+            }
+
+            this._header = header;
+            return this;
+        }
+    );
 };
 
 readable.prototype._readEntry = function(subtableIndex, slot) {

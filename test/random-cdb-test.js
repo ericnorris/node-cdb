@@ -100,6 +100,7 @@ vows.describe('cdb-random-test').addBatch({
         },
 
         teardown: function(cdb) {
+            cdb.close();
             fs.unlinkSync(randomFile);
         }
     }
