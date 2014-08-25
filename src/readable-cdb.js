@@ -73,7 +73,7 @@ readable.prototype.getRecord = function(key, callback) {
                 if (!entry) {
                     throw new Error('Hash not found.');
                 } else if (hash != entry.hash) {
-                    throw new EntrMismatchError();
+                    throw new EntryMismatchError();
                 }
 
                 return entry;

@@ -7,13 +7,13 @@ var readable = require('../src/readable-cdb');
 var tempFile = 'test/tmp';
 var fakeFile = 'test/doesntexist';
 
+try {
+    fs.unlinkSync(tempFile);
+} catch (err) {}
+
 vows.describe('cdb-test').addBatch({
     'A writable cdb': {
         topic: function() {
-            try {
-                fs.unlinkSync(tempFile);
-            } catch (err) {}
-
             return new writable(tempFile);
         },
 
@@ -62,7 +62,7 @@ vows.describe('cdb-test').addBatch({
                 },
 
                 'and have a file with non-zero size': function(err) {
-                    var stat = fs.statSync('test/tmp');
+                    var stat = fs.statSync(tempFile);
                     assert.isObject(stat);
                     assert.isTrue(stat.size != 0);
                 }
@@ -129,7 +129,7 @@ vows.describe('cdb-test').addBatch({
         },
 
         teardown: function(cdb) {
-            fs.unlinkSync('test/tmp');
+            fs.unlinkSync(tempFile);
         }
     }
 }).export(module);
