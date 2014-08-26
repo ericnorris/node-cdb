@@ -1,0 +1,33 @@
+{
+    "name": "constant-db",
+    "version": "1.0.0",
+    "description": "A cdb implementation for node.js",
+    "main": "./src/index.js",
+    "directories": {
+        "test": "test"
+    },
+    "dependencies": {
+        "bluebird": "^2.3.0"
+    },
+    "devDependencies": {
+        "vows": "^0.7.0"
+    },
+    "scripts": {
+        "test": "vows --spec"
+    },
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/ericnorris/node-cdb.git"
+    },
+    "keywords": [
+        "cdb",
+        "constant",
+        "database"
+    ],
+    "author": "Eric Norris",
+    "license": "MIT",
+    "bugs": {
+        "url": "https://github.com/ericnorris/node-cdb/issues"
+    },
+    "homepage": "https://github.com/ericnorris/node-cdb"
+}

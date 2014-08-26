@@ -2,8 +2,8 @@ var vows   = require('vows');
 var assert = require('assert');
 var fs     = require('fs');
 
-var writable = require('../src/writable-cdb');
-var readable = require('../src/readable-cdb');
+var writable = require('../src/').writable;
+var readable = require('../src/').readable;
 
 var randomFile = 'test/random';
 try {

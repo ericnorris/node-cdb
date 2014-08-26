@@ -1,4 +1,4 @@
-# node-cdb
+# node-constant-db
 A [cdb](http://en.wikipedia.org/wiki/Cdb_(software)) implementation in node.js, supporting both read and write capabilities.
 
 ## Installation
@@ -42,11 +42,11 @@ To create a new readable instance:
 
 Opens the file for reading, and immediately caches the header table for the cdb (2048 bytes).
 
-```.getRecord(key, offset (optional), callback(err, data))``` 
+```.getRecord(key, offset (optional), callback(err, data))```
 
 Attempts to find the specified key, and calls the callback with an error (if not found) or the data for that key (if found). If an offset is specified, the cdb will return data for the *nth* record matching that key.
 
-```.close(callback(err, cdb))``` 
+```.close(callback(err, cdb))```
 
 Closes the file. No more records can be read after closing.
 
@@ -54,15 +54,15 @@ Closes the file. No more records can be read after closing.
 To create a new writable instance:
 ```new require('constant-cdb').writable(file);```
 
-```.open(callback(err, cdb))``` 
+```.open(callback(err, cdb))```
 
 Opens the file for writing. This will overwrite any file that currently exists, or create a new one if necessary.
 
-```.addRecord(key, data)``` 
+```.addRecord(key, data)```
 
 Writes a record to the cdb.
 
-```.close(callback(err, cdb))``` 
+```.close(callback(err, cdb))```
 
 Finalizes the cdb and closes the file. Calling ```close()``` is necessary to write out the header and subtables required for the cdb!
 
