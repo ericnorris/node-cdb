@@ -38,21 +38,33 @@ reader.open(function cdbOpened(err) {
 To create a new readable instance:
 ```new require('constant-db').readable(file);```
 
-**```.open(callback(err, cdb))```** - opens the file for reading. Immediately caches the header table for the cdb (2048 bytes).
+```.open(callback(err, cdb))```
 
-**```.getRecord(key, callback(err, data))```** - attempts to find the specified key, and calls the callback with an error (if not found) or the data for that key (if found).
+Opens the file for reading, and immediately caches the header table for the cdb (2048 bytes).
 
-**```.close(callback(err, cdb))```** - closes the file. No more records can be read after closing.
+```.getRecord(key, offset (optional), callback(err, data))``` 
+
+Attempts to find the specified key, and calls the callback with an error (if not found) or the data for that key (if found). If an offset is specified, the cdb will return data for the *nth* record matching that key.
+
+```.close(callback(err, cdb))``` 
+
+Closes the file. No more records can be read after closing.
 
 ### Writable cdb
 To create a new writable instance:
 ```new require('constant-cdb').writable(file);```
 
-**```.open(callback(err, cdb))```** - opens the file for writing. This will overwrite any file that currently exists, or create a new one if necessary.
+```.open(callback(err, cdb))``` 
 
-**```.addRecord(key, data)```** - writes a record to the cdb.
+Opens the file for writing. This will overwrite any file that currently exists, or create a new one if necessary.
 
-**```.close(callback(err, cdb))```** - finalizes the cdb and closes the file. Calling ```close()``` is necessary to write out the header and subtables required for the cdb!
+```.addRecord(key, data)``` 
+
+Writes a record to the cdb.
+
+```.close(callback(err, cdb))``` 
+
+Finalizes the cdb and closes the file. Calling ```close()``` is necessary to write out the header and subtables required for the cdb!
 
 ### Promises, promises
 All the functions that take a callback also return promises, so feel free to use those instead!
