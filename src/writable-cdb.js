@@ -1,6 +1,6 @@
-var fs = require('fs');
+var fs      = require('fs');
 var promise = require('bluebird');
-var util = require('./util');
+var util    = require('./util');
 
 var HEADER_SIZE = util.HEADER_SIZE;
 var TABLE_SIZE  = util.TABLE_SIZE;

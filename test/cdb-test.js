@@ -46,6 +46,7 @@ vows.describe('cdb-test').addBatch({
 
             'should add records without exception': function(cdb) {
                 cdb.addRecord('meow', '0xdeadbeef');
+                cdb.addRecord('meow', '0xbeefdead');
                 cdb.addRecord('abcd', 'test1');
                 cdb.addRecord('efgh', 'test2');
                 cdb.addRecord('ijkl', 'test3');
@@ -113,6 +114,20 @@ vows.describe('cdb-test').addBatch({
 
                     'and return the right data': function(err, data) {
                         assert.equal(data, '0xdeadbeef');
+                    }
+                },
+
+                'should find an existing key at an offset': {
+                    topic: function(cdb) {
+                        cdb.getRecord('meow', 1, this.callback);
+                    },
+
+                    'without error': function(err, data) {
+                        assert.equal(err, null);
+                    },
+
+                    'and return the right data': function(err, data) {
+                        assert.equal(data, '0xbeefdead');
                     }
                 },
 

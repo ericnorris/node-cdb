@@ -50,9 +50,16 @@ readable.prototype.close = function(callback) {
     }
 };
 
-readable.prototype.getRecord = function(key, callback) {
+readable.prototype.getRecord = function(key, offset, callback) {
     if (!this._fd) {
         throw new Error('cdb not opened');
+    }
+
+    if (typeof offset == 'function') {
+        callback = offset;
+        offset = 0;
+    } else {
+        offset = offset || 0;
     }
 
     var hash = hashKey(key);
@@ -73,6 +80,9 @@ readable.prototype.getRecord = function(key, callback) {
         ).then(this._readKey).then(
             function checkKey(entry) {
                 if (key != entry.key) {
+                    throw new EntryMismatchError();
+                } else if (offset != 0) {
+                    offset--;
                     throw new EntryMismatchError();
                 }
 
