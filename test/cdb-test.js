@@ -45,12 +45,14 @@ vows.describe('cdb-test').addBatch({
             },
 
             'should add records without exception': function(cdb) {
-                cdb.addRecord('meow', '0xdeadbeef');
-                cdb.addRecord('meow', '0xbeefdead');
-                cdb.addRecord('abcd', 'test1');
-                cdb.addRecord('efgh', 'test2');
-                cdb.addRecord('ijkl', 'test3');
-                cdb.addRecord('mnopqrs', 'test4');
+                assert.doesNotThrow(function() {
+                    cdb.addRecord('meow', '0xdeadbeef');
+                    cdb.addRecord('meow', '0xbeefdead');
+                    cdb.addRecord('abcd', 'test1');
+                    cdb.addRecord('efgh', 'test2');
+                    cdb.addRecord('ijkl', 'test3');
+                    cdb.addRecord('mnopqrs', 'test4');
+                }, Error);
             },
 
             'should close': {

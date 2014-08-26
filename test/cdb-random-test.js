@@ -24,11 +24,35 @@ function getRandomString(minLength, maxLength) {
     return stringArray.join('');
 }
 
-var randomRecords = [];
-for (var i = 0; i < 1000; i++) {
-    var record = {key: getRandomString(5, 10), data: getRandomString(20, 30)}
-    randomRecords.push(record);
+function generateRandomRecords(count) {
+    var randomRecords = {};
+    for (var i = 0; i < count; i++) {
+        var key = getRandomString(5, 10);
+        var data = getRandomString(20, 30);
+
+        if (key in randomRecords) {
+            randomRecords[key].push(data);
+        } else {
+            randomRecords[key] = [data];
+        }
+    }
+
+    return randomRecords;
 }
+
+function iterateOverRecords(records, callback) {
+    var keys = Object.keys(records);
+    for (var i = 0; i < keys.length; i++) {
+        var key = keys[i];
+        var data = records[key];
+        for (var j = 0; j < data.length; j++) {
+            callback(key, j, data[j]);
+        }
+    }
+}
+
+var recordCount = 1000;
+var randomRecords = generateRandomRecords(recordCount);
 
 vows.describe('cdb-random-test').addBatch({
     'An opened writable cdb': {
@@ -41,10 +65,11 @@ vows.describe('cdb-random-test').addBatch({
         },
 
         'should add records without exception': function(err, cdb) {
-            for (var i = 0; i < randomRecords.length; i++) {
-                var record = randomRecords[i];
-                cdb.addRecord(record.key, record.data);
-            }
+            assert.doesNotThrow(function() {
+                iterateOverRecords(randomRecords, function(key, offset, data) {
+                    cdb.addRecord(key, data);
+                });
+            }, Error);
         },
 
         'should close': {
@@ -71,12 +96,12 @@ vows.describe('cdb-random-test').addBatch({
             topic: function(cdb) {
                 var found = 0;
                 var notFound = 0;
-                var count = randomRecords.length;
+                var count = recordCount;
                 var callback = this.callback;
 
-                function checkRecord(index) {
+                function checkRecord(expected) {
                     return function(err, data) {
-                        if (err || data != randomRecords[index].data) {
+                        if (err || data != expected) {
                             notFound++;
                         } else {
                             found++;
@@ -88,14 +113,14 @@ vows.describe('cdb-random-test').addBatch({
                     }
                 }
 
-                for (var i = 0; i < randomRecords.length; i++) {
-                    cdb.getRecord(randomRecords[i].key, checkRecord(i));
-                }
+                iterateOverRecords(randomRecords, function(key, offset, data) {
+                    cdb.getRecord(key, offset, checkRecord(data));
+                });
             },
 
             'should find all of them': function(notFound, found) {
                 assert.equal(notFound, null);
-                assert.equal(found, randomRecords.length);
+                assert.equal(found, recordCount);
             }
         },
 
