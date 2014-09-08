@@ -1,5 +1,5 @@
 # node-constant-db
-A [cdb](http://en.wikipedia.org/wiki/Cdb_(software)) implementation in node.js, supporting both read and write capabilities.
+A [cdb](http://cr.yp.to/cdb.html) implementation in node.js, supporting both read and write capabilities.
 
 ## Installation
 `npm install constant-db`
@@ -82,3 +82,6 @@ reader.open().then(function cdbOpened() {
     console.log('awesome!');
 });
 ```
+
+## Benchmark
+`npm run-script benchmark` or `node benchmarks/cdb-random-benchmark.js [record count]`
