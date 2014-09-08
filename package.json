@@ -13,7 +13,8 @@
         "vows": "^0.7.0"
     },
     "scripts": {
-        "test": "vows --spec"
+        "test": "vows --spec",
+        "benchmark": "node ./benchmark/cdb-random-benchmark.js"
     },
     "repository": {
         "type": "git",
