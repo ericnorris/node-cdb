@@ -1,21 +1,7 @@
 {
     "name": "constant-db",
-    "version": "1.0.0",
+    "version": "2.0.0",
     "description": "A cdb implementation for node.js",
-    "main": "./src/index.js",
-    "directories": {
-        "test": "test"
-    },
-    "dependencies": {
-        "bluebird": "^2.3.0"
-    },
-    "devDependencies": {
-        "vows": "^0.7.0"
-    },
-    "scripts": {
-        "test": "vows --spec",
-        "benchmark": "node ./benchmark/cdb-random-benchmark.js"
-    },
     "repository": {
         "type": "git",
         "url": "https://github.com/ericnorris/node-cdb.git"
