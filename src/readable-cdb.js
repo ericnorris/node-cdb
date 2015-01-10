@@ -51,7 +51,7 @@ readable.prototype.open = function(callback) {
     }
 };
 
-readable.prototype.get = function(key, callback) {
+readable.prototype.get = function(key, offset, callback) {
     var hash = hashKey(key),
         hashtableIndex = hash & 255,
         hashtable = this.header[hashtableIndex],
@@ -60,6 +60,11 @@ readable.prototype.get = function(key, callback) {
         slot = (hash >>> 8) % slotCount,
         self = this,
         hashPosition, recordHash, recordPosition, keyLength, dataLength;
+
+    if (typeof(offset) == 'function') {
+        callback = offset;
+        offset = 0;
+    }
 
     if (slotCount == 0) {
         return callback(null, null);
@@ -107,9 +112,12 @@ readable.prototype.get = function(key, callback) {
             return callback(err);
         }
 
-        if (buffer.toString() == key) {
+        if (buffer.toString() == key && offset == 0) {
             fs.read(self.fd, new Buffer(dataLength), 0, dataLength,
                 recordPosition + 8 + keyLength, returnData);
+        } else if (offset != 0) {
+            offset--;
+            readSlot(++slot);
         } else {
             readSlot(++slot);
         }
