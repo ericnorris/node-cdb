@@ -9,6 +9,7 @@ var readable = module.exports = function(file) {
     this.header = new Array(TABLE_SIZE);
 
     this.fd = null;
+    this.bookmark = null;
 };
 
 readable.prototype.open = function(callback) {
@@ -124,12 +125,20 @@ readable.prototype.get = function(key, offset, callback) {
     }
 
     function returnData(err, bytesRead, buffer) {
+        // Fill out bookmark information so getNext() will work
+        self.bookmark = function(newCallback) {
+            callback = newCallback;
+            readSlot(++slot);
+        };
+
         callback(err, buffer);
     }
 };
 
 readable.prototype.getNext = function(callback) {
-    // TODO
+    if (this.bookmark) {
+        this.bookmark(callback);
+    }
 };
 
 readable.prototype.close = function(callback) {
