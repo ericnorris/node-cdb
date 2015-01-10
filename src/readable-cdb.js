@@ -142,7 +142,7 @@ readable.prototype.getNext = function(callback) {
 };
 
 readable.prototype.close = function(callback) {
-    // TODO
+    fs.close(this.fd, callback);
 };
 
 // === Util ===
