@@ -4,10 +4,9 @@ var fs = require('fs');
 var HEADER_SIZE = 2048;
 var TABLE_SIZE  = 256;
 
-var readable = function(file) {
+var readable = module.exports = function(file) {
     this.file = file;
     this.header = new Array(TABLE_SIZE);
-    this.hashtables = new Array(TABLE_SIZE);
 
     this.fd = null;
 };
@@ -63,20 +62,20 @@ readable.prototype.get = function(key, callback) {
         hashPosition, recordHash, recordPosition, keyLength, dataLength;
 
     if (slotCount == 0) {
-        callback(null, null);
+        return callback(null, null);
     }
 
     readSlot(slot);
 
     function readSlot(slot) {
-        hashPosition = position + (slot * 8);
+        hashPosition = position + ((slot % slotCount) * 8);
 
         fs.read(self.fd, new Buffer(8), 0, 8, hashPosition, checkHash);
     }
 
     function checkHash(err, bytesRead, buffer) {
         if (err) {
-            callback(err);
+            return callback(err);
         }
 
         recordHash = buffer.readUInt32LE(0),
@@ -93,7 +92,7 @@ readable.prototype.get = function(key, callback) {
 
     function readKey(err, bytesRead, buffer) {
         if (err) {
-            callback(err);
+            return callback(err);
         }
 
         keyLength = buffer.readUInt32LE(0),
@@ -105,15 +104,19 @@ readable.prototype.get = function(key, callback) {
 
     function checkKey(err, bytesRead, buffer) {
         if (err) {
-            callback(err);
+            return callback(err);
         }
 
         if (buffer.toString() == key) {
             fs.read(self.fd, new Buffer(dataLength), 0, dataLength,
-                recordPosition + 8 + keyLength, callback);
+                recordPosition + 8 + keyLength, returnData);
         } else {
             readSlot(++slot);
         }
+    }
+
+    function returnData(err, bytesRead, buffer) {
+        callback(err, buffer);
     }
 };
 
