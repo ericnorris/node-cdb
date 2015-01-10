@@ -48,12 +48,73 @@ readable.prototype.open = function(callback) {
             bufferPosition += 8;
         }
 
-        callback(err);
+        callback(null);
     }
 };
 
 readable.prototype.get = function(key, callback) {
-    // TODO
+    var hash = hashKey(key),
+        hashtableIndex = hash & 255,
+        hashtable = this.header[hashtableIndex],
+        position = hashtable.position,
+        slotCount = hashtable.slotCount,
+        slot = (hash >>> 8) % slotCount,
+        self = this,
+        hashPosition, recordHash, recordPosition, keyLength, dataLength;
+
+    if (slotCount == 0) {
+        callback(null, null);
+    }
+
+    readSlot(slot);
+
+    function readSlot(slot) {
+        hashPosition = position + (slot * 8);
+
+        fs.read(self.fd, new Buffer(8), 0, 8, hashPosition, checkHash);
+    }
+
+    function checkHash(err, bytesRead, buffer) {
+        if (err) {
+            callback(err);
+        }
+
+        recordHash = buffer.readUInt32LE(0),
+        recordPosition = buffer.readUInt32LE(4);
+
+        if (recordHash == hash) {
+            fs.read(self.fd, new Buffer(8), 0, 8, recordPosition, readKey);
+        } else if (recordHash == 0) {
+            callback(null, null);
+        } else {
+            readSlot(++slot);
+        }
+    }
+
+    function readKey(err, bytesRead, buffer) {
+        if (err) {
+            callback(err);
+        }
+
+        keyLength = buffer.readUInt32LE(0),
+        dataLength = buffer.readUInt32LE(4);
+
+        fs.read(self.fd, new Buffer(keyLength), 0, keyLength,
+            recordPosition + 8, checkKey);
+    }
+
+    function checkKey(err, bytesRead, buffer) {
+        if (err) {
+            callback(err);
+        }
+
+        if (buffer.toString() == key) {
+            fs.read(self.fd, new Buffer(dataLength), 0, dataLength,
+                recordPosition + 8 + keyLength, callback);
+        } else {
+            readSlot(++slot);
+        }
+    }
 };
 
 readable.prototype.getNext = function(callback) {
@@ -63,3 +124,18 @@ readable.prototype.getNext = function(callback) {
 readable.prototype.close = function(callback) {
     // TODO
 };
+
+// === Util ===
+
+// Hashing implementation
+function hashKey(key) {
+    var hash = 5381,
+        i = 0,
+        length = key.length;
+
+    for (; i < length; i++) {
+        hash = ((((hash << 5) >>> 0) + hash) ^ key.charCodeAt(i)) >>> 0;
+    }
+
+    return hash;
+}
