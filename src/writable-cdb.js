@@ -43,7 +43,7 @@ writable.prototype.open = function(callback) {
 
 writable.prototype.put = function(key, data) {
     var recordHeader = new Buffer(8),
-        hash = hashKey(key)
+        hash = hashKey(key),
         hashtableIndex = hash & 255,
         hashtable = this._hashtables[hashtableIndex] || [];
 
