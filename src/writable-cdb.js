@@ -27,6 +27,11 @@ writable.prototype.open = function(callback) {
     function fileOpened(fd) {
         self._recordStream = recordStream;
         self._filePosition = HEADER_SIZE;
+
+        self._recordStream.on('drain', function echoDrain() {
+            self.emit('drain');
+        });
+
         self.emit('open');
         callback();
     }
@@ -42,22 +47,25 @@ writable.prototype.open = function(callback) {
 };
 
 writable.prototype.put = function(key, data) {
-    var recordHeader = new Buffer(8),
+    var record = new Buffer(8 + key.length + data.length),
         hash = hashKey(key),
         hashtableIndex = hash & 255,
-        hashtable = this._hashtables[hashtableIndex] || [];
+        hashtable = this._hashtables[hashtableIndex] || [],
+        okayToWrite = true;
 
-    recordHeader.writeUInt32LE(key.length, 0);
-    recordHeader.writeUInt32LE(data.length, 4);
+    record.writeUInt32LE(key.length, 0);
+    record.writeUInt32LE(data.length, 4);
+    record.write(key, 8);
+    record.write(data, 8 + key.length);
 
-    this._recordStream.write(recordHeader);
-    this._recordStream.write(key);
-    this._recordStream.write(data);
+    okayToWrite = this._recordStream.write(record);
 
     hashtable.push({hash: hash, position: this._filePosition});
     this._hashtables[hashtableIndex] = hashtable;
 
-    this._filePosition += recordHeader.length + key.length + data.length;
+    this._filePosition += record.length;
+
+    return okayToWrite;
 };
 
 writable.prototype.close = function(callback) {

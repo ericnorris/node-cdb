@@ -104,6 +104,11 @@ readable.prototype.get = function(key, offset, callback) {
         keyLength = buffer.readUInt32LE(0),
         dataLength = buffer.readUInt32LE(4);
 
+        if (keyLength != key.length) {
+            // speedup in the rare case of a hash collision
+            return readSlot(++slot);
+        }
+
         fs.read(self.fd, new Buffer(keyLength), 0, keyLength,
             recordPosition + 8, checkKey);
     }
