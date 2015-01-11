@@ -49,6 +49,7 @@ vows.describe('cdb-test').addBatch({
                     cdb.put('meow', '0xdeadbeef');
                     cdb.put('meow', '0xbeefdead');
                     cdb.put('abcd', 'test1');
+                    cdb.put('abcd', 'offset_test');
                     cdb.put('efgh', 'test2');
                     cdb.put('ijkl', 'test3');
                     cdb.put('mnopqrs', 'test4');
@@ -77,7 +78,7 @@ vows.describe('cdb-test').addBatch({
     'A readable cdb': {
         'for a non-existing file': {
             topic: function() {
-                return new readable(fakeFile)
+                return new readable(fakeFile);
             },
 
             'when opened': {
@@ -93,7 +94,7 @@ vows.describe('cdb-test').addBatch({
 
         'for an existing file': {
             topic: function() {
-                return new readable(tempFile)
+                return new readable(tempFile);
             },
 
             'when opened': {
@@ -116,12 +117,23 @@ vows.describe('cdb-test').addBatch({
 
                     'and return the right data': function(err, data) {
                         assert.equal(data, '0xdeadbeef');
+                    },
+
+                    'with a duplicate': {
+                        topic: function(_, cdb) {
+                            cdb.getNext(this.callback);
+                        },
+
+                        'that is found via getNext()': function(err, data) {
+                            assert.equal(err, null);
+                            assert.equal(data, '0xbeefdead');
+                        }
                     }
                 },
 
                 'should find an existing key at an offset': {
                     topic: function(cdb) {
-                        cdb.get('meow', 1, this.callback);
+                        cdb.get('abcd', 1, this.callback);
                     },
 
                     'without error': function(err, data) {
@@ -129,7 +141,7 @@ vows.describe('cdb-test').addBatch({
                     },
 
                     'and return the right data': function(err, data) {
-                        assert.equal(data, '0xbeefdead');
+                        assert.equal(data, 'offset_test');
                     }
                 },
 
