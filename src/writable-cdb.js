@@ -33,7 +33,7 @@ writable.prototype.open = function(callback) {
         });
 
         self.emit('open');
-        callback();
+        callback(null, self);
     }
 
     function error(err) {

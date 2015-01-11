@@ -48,7 +48,7 @@ readable.prototype.open = function(callback) {
             bufferPosition += 8;
         }
 
-        callback(null);
+        callback(null, self);
     }
 };
 
