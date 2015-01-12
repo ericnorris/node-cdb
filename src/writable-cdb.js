@@ -28,15 +28,19 @@ writable.prototype.open = function(callback) {
         self._recordStream = recordStream;
         self._filePosition = HEADER_SIZE;
 
-        self._recordStream.on('drain', function echoDrain() {
+        recordStream.on('drain', function echoDrain() {
             self.emit('drain');
         });
+
+        recordStream.removeListener('error', error);
 
         self.emit('open');
         callback(null, self);
     }
 
     function error(err) {
+        recordStream.removeListener('open', fileOpened);
+
         self.emit('error', err);
         callback(err);
     }
@@ -46,7 +50,7 @@ writable.prototype.open = function(callback) {
     recordStream.once('error', error);
 };
 
-writable.prototype.put = function(key, data) {
+writable.prototype.put = function(key, data, callback) {
     var record = new Buffer(8 + key.length + data.length),
         hash = hashKey(key),
         hashtableIndex = hash & 255,
@@ -58,7 +62,7 @@ writable.prototype.put = function(key, data) {
     record.write(key, 8);
     record.write(data, 8 + key.length);
 
-    okayToWrite = this._recordStream.write(record);
+    okayToWrite = this._recordStream.write(record, callback);
 
     hashtable.push({hash: hash, position: this._filePosition});
     this._hashtables[hashtableIndex] = hashtable;
@@ -72,9 +76,8 @@ writable.prototype.close = function(callback) {
     var self = this,
         callback = callback || function() {};
 
-    this._recordStream.end();
-
     this._recordStream.on('finish', openStreamForHashtable);
+    this._recordStream.end();
 
     function openStreamForHashtable() {
         self._hashtableStream = fs.createWriteStream(self._file,
