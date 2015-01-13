@@ -22,5 +22,8 @@
   "bugs": {
     "url": "https://github.com/ericnorris/node-cdb/issues"
   },
-  "homepage": "https://github.com/ericnorris/node-cdb"
+  "homepage": "https://github.com/ericnorris/node-cdb",
+  "jshintConfig": {
+    "node": true
+  }
 }

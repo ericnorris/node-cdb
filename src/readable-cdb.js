@@ -1,8 +1,9 @@
-var fs = require('fs');
+'use strict';
 
-// Constants
-var HEADER_SIZE = 2048;
-var TABLE_SIZE  = 256;
+var fs = require('fs'),
+    _  = require('./cdb-util'),
+    HEADER_SIZE = 2048,
+    TABLE_SIZE  = 256;
 
 var readable = module.exports = function(file) {
     this.file = file;
@@ -31,19 +32,17 @@ readable.prototype.open = function(callback) {
             return callback(err);
         }
 
-        var i = 0,
-            length = TABLE_SIZE,
-            bufferPosition = 0,
-            position, slotCount;
+        var bufferPosition = 0,
+            i, position, slotCount;
 
-        for (; i < length; i++) {
+        for (i = 0; i < TABLE_SIZE; i++) {
             position = buffer.readUInt32LE(bufferPosition);
             slotCount = buffer.readUInt32LE(bufferPosition + 4);
 
             self.header[i] = {
                 position: position,
                 slotCount: slotCount
-            }
+            };
 
             bufferPosition += 8;
         }
@@ -53,7 +52,7 @@ readable.prototype.open = function(callback) {
 };
 
 readable.prototype.get = function(key, offset, callback) {
-    var hash = hashKey(key),
+    var hash = _.cdbHash(key),
         hashtableIndex = hash & 255,
         hashtable = this.header[hashtableIndex],
         position = hashtable.position,
@@ -67,7 +66,7 @@ readable.prototype.get = function(key, offset, callback) {
         offset = 0;
     }
 
-    if (slotCount == 0) {
+    if (slotCount === 0) {
         return callback(null, null);
     }
 
@@ -84,12 +83,12 @@ readable.prototype.get = function(key, offset, callback) {
             return callback(err);
         }
 
-        recordHash = buffer.readUInt32LE(0),
+        recordHash = buffer.readUInt32LE(0);
         recordPosition = buffer.readUInt32LE(4);
 
         if (recordHash == hash) {
             fs.read(self.fd, new Buffer(8), 0, 8, recordPosition, readKey);
-        } else if (recordHash == 0) {
+        } else if (recordHash === 0) {
             callback(null, null);
         } else {
             readSlot(++slot);
@@ -101,7 +100,7 @@ readable.prototype.get = function(key, offset, callback) {
             return callback(err);
         }
 
-        keyLength = buffer.readUInt32LE(0),
+        keyLength = buffer.readUInt32LE(0);
         dataLength = buffer.readUInt32LE(4);
 
         if (keyLength != key.length) {
@@ -118,10 +117,10 @@ readable.prototype.get = function(key, offset, callback) {
             return callback(err);
         }
 
-        if (buffer.toString() == key && offset == 0) {
+        if (buffer.toString() == key && offset === 0) {
             fs.read(self.fd, new Buffer(dataLength), 0, dataLength,
                 recordPosition + 8 + keyLength, returnData);
-        } else if (offset != 0) {
+        } else if (offset !== 0) {
             offset--;
             readSlot(++slot);
         } else {
@@ -149,18 +148,3 @@ readable.prototype.getNext = function(callback) {
 readable.prototype.close = function(callback) {
     fs.close(this.fd, callback);
 };
-
-// === Util ===
-
-// Hashing implementation
-function hashKey(key) {
-    var hash = 5381,
-        i = 0,
-        length = key.length;
-
-    for (; i < length; i++) {
-        hash = ((((hash << 5) >>> 0) + hash) ^ key.charCodeAt(i)) >>> 0;
-    }
-
-    return hash;
-}
