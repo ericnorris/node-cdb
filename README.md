@@ -4,6 +4,13 @@ A [cdb](http://cr.yp.to/cdb.html) implementation in node.js, supporting both rea
 ## Installation
 `npm install constant-db`
 
+## Changes from v1.0.0
+* Renamed `getRecord()` to `get()`
+* Renamed `putRecord()` to `put()`
+* Added `getNext()`
+* Dropped promise support
+* Completely rewritten! `get()` calls should be much faster.
+
 ## Example
 Writable cdb:
 ```javascript
@@ -11,7 +18,7 @@ var writable = require('constant-db').writable;
 
 var writer = new writable('./cdbfile');
 writer.open(function cdbOpened(err) {
-    writer.addRecord('meow', 'hello world');
+    writer.put('meow', 'hello world');
     writer.close(function cdbClosed(err) {
         console.log('hooray!');
     });
@@ -24,7 +31,7 @@ var readable = require('constant-db').readable;
 
 var reader = new readable('./cdbfile');
 reader.open(function cdbOpened(err) {
-    reader.getRecord('meow', function gotRecord(err, data) {
+    reader.get('meow', function gotRecord(err, data) {
         console.log(data); // results in 'hello world!'
     });
     reader.close(function cdbClosed(err) {
@@ -36,52 +43,39 @@ reader.open(function cdbOpened(err) {
 ## Documentation
 ### Readable cdb
 To create a new readable instance:
-```new require('constant-db').readable(file);```
+`new require('constant-db').readable(file);`
 
-```.open(callback(err, cdb))```
+`open(callback(err, cdb))`
 
 Opens the file for reading, and immediately caches the header table for the cdb (2048 bytes).
 
-```.getRecord(key, offset (optional), callback(err, data))```
+`get(key, [offset], callback(err, data))`
 
 Attempts to find the specified key, and calls the callback with an error (if not found) or the data for that key (if found). If an offset is specified, the cdb will return data for the *nth* record matching that key.
 
-```.close(callback(err, cdb))```
+`getNext(callback(err, data))`
+
+Continues the previous `get()` call, finding the next record under the key `get()` was called with. This should be slightly faster than calling `get()` with an offset.
+
+`close(callback(err, cdb))`
 
 Closes the file. No more records can be read after closing.
 
 ### Writable cdb
 To create a new writable instance:
-```new require('constant-cdb').writable(file);```
+`new require('constant-cdb').writable(file);`
 
-```.open(callback(err, cdb))```
+`open(callback(err, cdb))`
 
 Opens the file for writing. This will overwrite any file that currently exists, or create a new one if necessary.
 
-```.addRecord(key, data)```
+`put(key, data)`
 
 Writes a record to the cdb.
 
-```.close(callback(err, cdb))```
+`close(callback(err, cdb))`
 
-Finalizes the cdb and closes the file. Calling ```close()``` is necessary to write out the header and subtables required for the cdb!
-
-### Promises, promises
-All the functions that take a callback also return promises, so feel free to use those instead!
-
-Example:
-```javascript
-var readable = require('constant-db').readable;
-
-var reader = new readable('./cdbfile');
-reader.open().then(function cdbOpened() {
-    return reader.getRecord('meow');
-}).then(function(data) {
-    console.log(data); // results in 'hello world!'
-}).then(reader.close).then(function cdbClosed() {
-    console.log('awesome!');
-});
-```
+Finalizes the cdb and closes the file. Calling `close()` is necessary to write out the header and subtables required for the cdb!
 
 ## Benchmark
-`npm run-script benchmark` or `node benchmarks/cdb-random-benchmark.js [record count]`
+`node benchmarks/cdb-random-benchmark.js`
