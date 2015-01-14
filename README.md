@@ -1,4 +1,4 @@
-# node-constant-db
+# node-constant-db [![Build Status](https://travis-ci.org/ericnorris/node-cdb.svg?branch=master)](https://travis-ci.org/ericnorris/node-cdb)
 A [cdb](http://cr.yp.to/cdb.html) implementation in node.js, supporting both read and write capabilities.
 
 ## Installation
