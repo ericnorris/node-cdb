@@ -1,11 +1,12 @@
-var vows   = require('vows');
-var assert = require('assert');
-var fs     = require('fs');
+'use strict';
 
-var writable = require('../src/writable-cdb');
-var readable = require('../src/readable-cdb');
-var tempFile = 'test/tmp';
-var fakeFile = 'test/doesntexist';
+var vows     = require('vows'),
+    assert   = require('assert'),
+    fs       = require('fs'),
+    writable = require('../src/writable-cdb'),
+    readable = require('../src/readable-cdb'),
+    tempFile = 'test/tmp',
+    fakeFile = 'test/doesntexist';
 
 try {
     fs.unlinkSync(tempFile);
@@ -17,7 +18,7 @@ vows.describe('cdb-test').addBatch({
             return new writable(tempFile);
         },
 
-        'should not create a file when instantiated': function(cdb) {
+        'should not create a file when instantiated': function() {
             assert.throws(function() {
                 fs.statSync(tempFile);
             }, Error);
@@ -68,7 +69,7 @@ vows.describe('cdb-test').addBatch({
                 'and have a file with non-zero size': function(err) {
                     var stat = fs.statSync(tempFile);
                     assert.isObject(stat);
-                    assert.isTrue(stat.size != 0);
+                    assert.isTrue(stat.size !== 0);
                 }
             },
 
@@ -183,6 +184,20 @@ vows.describe('cdb-test').addBatch({
 
         teardown: function() {
             fs.unlinkSync(tempFile);
+        }
+    }
+}).addBatch({
+    'The CDB package\'s module.exports': {
+        topic: function() {
+            return require('../src');
+        },
+
+        'should have a writable CDB': function(index) {
+            assert.isFunction(index.writable);
+        },
+
+        'should have a readable CDB': function(index) {
+            assert.isFunction(index.readable);
         }
     }
 }).export(module);

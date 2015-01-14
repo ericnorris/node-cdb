@@ -1,11 +1,11 @@
-var vows   = require('vows');
-var assert = require('assert');
-var fs     = require('fs');
+'use strict';
 
-var writable = require('../src/writable-cdb');
-var readable = require('../src/readable-cdb');
-
-var randomFile = 'test/random';
+var vows   = require('vows'),
+    assert = require('assert'),
+    fs     = require('fs'),
+    writable = require('../src/writable-cdb'),
+    readable = require('../src/readable-cdb'),
+    randomFile = 'test/random';
 
 try {
     fs.unlinkSync(randomFile);
@@ -75,7 +75,7 @@ vows.describe('cdb-random-test').addBatch({
 
         'should close': {
             topic: function(cdb) {
-                cdb.close(this.callback)
+                cdb.close(this.callback);
             },
 
             'without error': function(err, cdb) {
@@ -108,10 +108,10 @@ vows.describe('cdb-random-test').addBatch({
                             found++;
                         }
 
-                        if (--count == 0) {
+                        if (--count === 0) {
                             callback(notFound, found);
                         }
-                    }
+                    };
                 }
 
                 iterateOverRecords(randomRecords, function(key, offset, data) {
