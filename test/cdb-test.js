@@ -189,7 +189,7 @@ vows.describe('cdb-test').addBatch({
 }).addBatch({
     'The CDB package\'s module.exports': {
         topic: function() {
-            return require('../src');
+            return require('../');
         },
 
         'should have a writable CDB': function(index) {
