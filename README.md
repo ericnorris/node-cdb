@@ -33,9 +33,10 @@ var reader = new readable('./cdbfile');
 reader.open(function cdbOpened(err) {
     reader.get('meow', function gotRecord(err, data) {
         console.log(data); // results in 'hello world!'
-    });
-    reader.close(function cdbClosed(err) {
-        console.log('awesome!');
+        
+        reader.close(function cdbClosed(err) {
+            console.log('awesome!');
+        });
     });
 });
 ```
