@@ -53,16 +53,16 @@ writable.prototype.open = function(cb) {
 };
 
 writable.prototype.put = function(key, data, callback) {
-    var record = new Buffer(8 + key.length + data.length),
+    var record = new Buffer(8 + Buffer.byteLength(key) + Buffer.byteLength(data)),
         hash = _.cdbHash(key),
         hashtableIndex = hash & 255,
         hashtable = this.hashtables[hashtableIndex],
         okayToWrite;
 
-    record.writeUInt32LE(key.length, 0);
-    record.writeUInt32LE(data.length, 4);
+    record.writeUInt32LE(Buffer.byteLength(key), 0);
+    record.writeUInt32LE(Buffer.byteLength(data), 4);
     record.write(key, 8);
-    record.write(data, 8 + key.length);
+    record.write(data, 8 + Buffer.byteLength(key));
 
     okayToWrite = this.recordStream.write(record, callback);
 
