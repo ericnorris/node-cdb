@@ -58,6 +58,7 @@ readable.prototype.get = function(key, offset, callback) {
         position = hashtable.position,
         slotCount = hashtable.slotCount,
         slot = (hash >>> 8) % slotCount,
+        trueKeyLength = Buffer.byteLength(key),
         self = this,
         hashPosition, recordHash, recordPosition, keyLength, dataLength;
 
@@ -103,8 +104,9 @@ readable.prototype.get = function(key, offset, callback) {
         keyLength = buffer.readUInt32LE(0);
         dataLength = buffer.readUInt32LE(4);
 
-        if (keyLength != key.length) {
-            // speedup in the rare case of a hash collision
+        // In the rare case that there is a hash collision, check the key size
+        // to prevent reading in a key that will definitely not match.
+        if (keyLength != trueKeyLength) {
             return readSlot(++slot);
         }
 
