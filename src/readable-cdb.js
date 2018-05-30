@@ -16,7 +16,7 @@ var readable = module.exports = function(file) {
 readable.prototype.open = function(callback) {
     var self = this;
 
-    fs.open(this.file, 'r+', readHeader);
+    fs.open(this.file, 'r', readHeader);
 
     function readHeader(err, fd) {
         if (err) {
